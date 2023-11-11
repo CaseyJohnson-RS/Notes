@@ -9,7 +9,7 @@
 - to 
 - so that
 - in order that
-- in case
+- in case - ("если вдруг")
 - for
 
 <mark>In order to, so as to, to + infinitive</mark> используются, когда в главном и придаточном предложениях одно и то же подлежащее
@@ -46,4 +46,27 @@ Ex:
 ```eng
 As a rule, we don't tell out granny the bad news so that she won't worry
 Как правило, мы не рассказываем нашей бабушке плохие новости, чтобы она не волновалась
+```
+
+Союз <mark>in case</mark> используется с существительным (действующим лицом) или глаголом (не используется с will и would)
+
+Ex:
+
+```eng
+I'll put some medicine in my bag in case someone feels bad during the voyage
+We decided to take a taxi in case it rained
+```
+
+<mark>For + noun/gerund</mark>
+
+Ex:
+
+```eng
+She went to the doctor for a regular check-up
+My mom uses this pan for baking pancakes
+We use this tool for digging
+
+// Отрицание (prevent, avoid)
+Use this cream only on your cheeks, forehead and chin to prevent it from getting into your eyes
+He switched off the TV to avoid waking up his wife
 ```
