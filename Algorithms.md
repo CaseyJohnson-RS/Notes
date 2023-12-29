@@ -157,7 +157,6 @@ def lcm(a,b):
         return m
 
     return a*b//gcd(a,b)
-
 ```
 
 ## Геометрия
@@ -305,8 +304,4 @@ def HamiltonianCycle(M):    # O(n^2) - Для неориентированног
     queue.append(queue.pop(0))
 
   return [i + 1 for i in queue]
-```
-
-```python
-
 ```
