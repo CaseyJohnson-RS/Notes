@@ -9,15 +9,36 @@
 int main()
 {
     double* arr = new double[N];
-    //...
-
+ 
     std::sort(arr, arr + N);
-
-    //...
-
-    return 0;
 }
 ```
+
+### Максимальный элемент в массиве и векторе
+
+```cpp
+#include <algorithm>
+//...
+
+int main()
+{
+    std::vector<int> vec { 1, 2, 3, 4, 5 };
+    int * arr = new int[5];
+
+    auto maxv = std::max_element(vec.begin(), vec.end());
+    auto maxa = std::max_element(arr, arr+5);
+
+    std::cout << *maxv << " " << maxa << std::endl;
+}
+```
+
+### Удалить элемент из vector\<T\>
+
+```cpp
+
+```
+
+
 
 ### NB (Useful notes)
 
