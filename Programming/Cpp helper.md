@@ -9,7 +9,7 @@
 int main()
 {
     double* arr = new double[N];
- 
+
     std::sort(arr, arr + N);
 }
 ```
@@ -37,8 +37,6 @@ int main()
 ```cpp
 
 ```
-
-
 
 ### NB (Useful notes)
 
