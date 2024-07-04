@@ -1,15 +1,52 @@
-# Fast API
+<mark>Fast API</mark>
 
-###### Template
+# Настройка окружения
 
-```python
-from fastapi import FastAPI
+###### Примерная структура проекта
 
-app = FastAPI()
+```bash
+project_name/
+├── app/
+│   ├── __init__.py
+│   ├── main.py
+│   ├── models/
+│   │   └── __init__.py
+│   └── routes/
+│       └── __init__.py
+├── static/
+│   ├── css/
+│   │   └── styles.css
+│   ├── scripts/
+│   │   └── scripts.js
+├── templates/
+│   ├── index.html
+└── requirements.txt
+```
 
-@app.get("/")
-async def root():
-    return {"message": "Hello World"}
+###### Начинка `requirements.txt`
+
+```bash
+fastapi[all]
+uvicorn
+sqlalchemy
+aiosqlite
+```
+
+###### Настройка `venv`
+
+```bash
+python -m venv venv
+
+# Для Linux и MacOS
+source venv/bin/activate 
+# Для Win
+.\venv\Scripts\activate
+
+# Установка зависимостей
+pip install -r ./requirements.txt
+
+# Если не находится файл (выдает ошибку об отсутствии файла - попробуй)
+# изменить направление слеша '\' или '/'
 ```
 
 ###### Start
@@ -559,8 +596,6 @@ async def read_items(user_agent: Annotated[str | None, Header()] = None):
 ###### Модель ответа - Возвращаемый тип
 
 Вы можете объявить тип ответа, указав аннотацию **возвращаемого значения** для *функции операции пути*.
-
-
 
 <u>Строгая проверка!</u>
 
