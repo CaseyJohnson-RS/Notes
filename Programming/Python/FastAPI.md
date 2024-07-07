@@ -91,10 +91,24 @@ uvicorn app.main:app --reload
   ```
 
 - Cookie
-
-- 
+  
+  ```python
+  from fastapi import Cookie, FastAPI
+  
+  @app.get("/items/")
+  async def read_items(ads_id: str | None = Cookie(default=None)):
+      pass
+  ```
 
 - Header
+  
+  ```python
+  @app.get("/items/")
+  async def read_items(
+      strange_header: Annotated[str | None, Header(convert_underscores=False)] = None,
+  ): 
+      pass
+  ```
 
 Если требуется указать **множество значений** (применительно к Body и Query), то можно использовать следующий синтаксис:
 
@@ -219,3 +233,287 @@ class Item(BaseModel):
 - `Decimal`:
   - Встроенный в Python `Decimal`.
   - В запросах и ответах обрабатывается так же, как и `float`.
+
+# Возвращаемое значение
+
+Можно объявить тип ответа функции. Это нужно для валидации ответа. Если данные невалидны, это означает, что код *твоего* приложения работает некорректно и функция возвращает не то, что ожидается. **Главное: ответ будет ограничен и отфильтрован. Т.е. в нем останутся только те данные, которые определены в возвращаемом типе.** Пример:
+
+```python
+@app.post("/items/")
+async def create_item(item: Item) -> Item:
+    return item
+
+
+@app.get("/items/")
+async def read_items() -> list[Item]:
+    return [
+        Item(name="Portal Gun", price=42.0),
+        Item(name="Plumbus", price=32.0),
+    ]
+```
+
+Если интересно больше (там много функций, то почитай [здесь](https://fastapi.tiangolo.com/ru/tutorial/response-model/))
+
+# HTTP коды статуса ответа
+
+Можно напрямую задать HTTP код статуса ответа с помощью параметра `status_code` так, как ты определяешь схему ответа в любой из операций пути ([это](https://docs.python.org/3/library/http.html#http.HTTPStatus) может помочь): 
+
+```python
+from fastapi import FastAPI
+
+app = FastAPI()
+
+
+@app.post("/items/", status_code=201)
+async def create_item(name: str):
+    return {"name": name}
+```
+
+# Получение данных формы
+
+Требует установки:
+
+```bash
+pip install python-multipart
+```
+
+---
+
+**Технические детали**: данные из форм обычно кодируются с использованием "типа медиа" `application/x-www-form-urlencoded`. Но когда форма содержит файлы, она кодируется как `multipart/form-data`. Вы узнаете о работе с файлами в следующей главе.
+
+**Предупреждение:** вы можете объявлять несколько параметров `Form` в *операции пути*, но вы не можете одновременно с этим объявлять поля `Body`, которые вы ожидаете получить в виде JSON, так как запрос будет иметь тело, закодированное с использованием `application/x-www-form-urlencoded`, а не `application/json`.
+
+```python
+from typing import Annotated
+
+from fastapi import FastAPI, Form
+
+app = FastAPI()
+
+
+@app.post("/login/")
+async def login( 
+    username: Annotated[str, Form()], 
+    password: Annotated[str, Form()]
+):
+    return {"username": username}
+```
+
+# Загрузка файлов
+
+Требует установки:
+
+```bash
+pip install python-multipart
+```
+
+---
+
+Через `File`
+
+```python
+from fastapi import FastAPI, File, UploadFile
+
+@app.post("/files/")
+async def create_file(file: Annotated[bytes, File()]):
+    return {"file_size": len(file)}
+```
+
+Через `UploadFile`
+
+```python
+from fastapi import FastAPI, File, UploadFile
+
+@app.post("/uploadfile/")
+async def create_upload_file(file: UploadFile):
+    return {"filename": file.filename}
+```
+
+Атрибуты `UploadFile`:
+
+- `filename` - строка с исходным именем файла.
+
+- `content_type` - тип содержимого (ex.: `image/jpeg`)
+
+- `file:SpooledTemporaryFile` - фактический файл Python. [Ссылка]([tempfile — Generate temporary files and directories &#8212; Python 3.12.4 documentation](https://docs.python.org/3/library/tempfile.html#tempfile.SpooledTemporaryFile)) на документацию
+
+Функции `UploadFile` (все они `async`):
+
+- `write(data)` - записать данные `data` (`str` или `bytes`) в файл
+
+- `read(size)`: Прочитать количество `size` (`int`) байт/символов из файла.
+
+- `seek(offset)`: Перейти к байту на позиции `offset` (`int`) в файле.
+  
+  - Например, `await myfile.seek(0)` перейдет к началу файла.
+  - Это особенно удобно, если вы один раз выполнили команду `await myfile.read()`, а затем вам нужно прочитать содержимое файла еще раз.
+
+- `close()`: Закрыть файл.
+
+
+
+**Предупреждение**. В операции *функции операции пути* можно объявить несколько параметров `File` и `Form`, но нельзя также объявлять поля `Body`, которые предполагается получить в виде JSON, поскольку тело запроса будет закодировано с помощью `multipart/form-data`, а не `application/json`.
+
+
+
+**Пример файлов и формы в запросе**
+
+```python
+from typing import Annotated
+
+from fastapi import FastAPI, File, Form, UploadFile
+
+app = FastAPI()
+
+
+@app.post("/files/")
+async def create_file(
+    file: Annotated[bytes, File()],
+    fileb: Annotated[UploadFile, File()],
+    token: Annotated[str, Form()],
+):
+    return {
+        "file_size": len(file),
+        "token": token,
+        "fileb_content_type": fileb.content_type,
+    }
+```
+
+# Обработка ошибок
+
+ Используем `HTTPException` из `fastapi`
+
+```python
+from fastapi import FastAPI, HTTPException
+
+app = FastAPI()
+
+items = {"foo": "The Foo Wrestlers"}
+
+
+@app.get("/items/{item_id}")
+async def read_item(item_id: str):
+    if item_id not in items:
+        raise HTTPException(
+            status_code=404, 
+            detail="Item not found",
+            headers={"X-Error": "There goes my error"},
+        )
+    return {"item": items[item_id]}
+```
+
+Есть еще про пользовательские обработчики исключений, которые я не понял, они [здесь]([Обработка ошибок - FastAPI](https://fastapi.tiangolo.com/ru/tutorial/handling-errors/#_4))
+
+# Конфигурация операций пути
+
+Тут вещи больше относятся к документации
+
+`status_code` - определяет код ответа
+
+`tags` - список, заполненный `str` 
+
+`summary` - краткое описание
+
+`description` - развёрнутое содержание
+
+`response_description` - описание ответа
+
+`deprecated` - описание операции пути как устаревшей
+
+```python
+@app.post(
+    "/items/",
+    response_model=Item,
+    summary="Create an item",
+    description="Create an item with all the information, name, description, price, tax and a set of unique tags",
+    tags=["items"]
+)
+async def create_item(item: Item):
+    pass
+```
+
+
+
+Описание из строк документации
+
+Так как описания обычно длинные и содержат много строк, вы можете объявить описание *операции пути* в функции строки документации и **FastAPI** прочитает её отсюда.
+
+```python
+@app.post("/items/", response_model=Item, summary="Create an item")
+async def create_item(item: Item):
+    """
+    Create an item with all the information:
+
+    - **name**: each item must have a name
+    - **description**: a long description
+    - **price**: required
+    - **tax**: if the item doesn't have tax, you can omit this
+    - **tags**: a set of unique tag strings for this item
+    """
+    return item
+```
+
+# JSON кодировщик
+
+Описание зачем он нужен [здесь](https://fastapi.tiangolo.com/ru/tutorial/encoder/)
+
+```python
+from datetime import datetime
+
+from fastapi import FastAPI
+from fastapi.encoders import jsonable_encoder
+from pydantic import BaseModel
+
+fake_db = {}
+
+
+class Item(BaseModel):
+    title: str
+    timestamp: datetime
+    description: str | None = None
+
+
+app = FastAPI()
+
+
+@app.put("/items/{id}")
+def update_item(id: str, item: Item):
+    json_compatible_item_data = jsonable_encoder(item)
+    fake_db[id] = json_compatible_item_data
+```
+
+# Body обновления
+
+Всем понятно, что смысл операции `PUT` заключается в добавлении либо полной замене информации.  
+
+Но как обновлять информацию? Частичное обновление с помощью `PATCH`!
+
+**Использование параметра** `exclude_unset` в Pydantic. Будет сгенерирован словарь, содержащий только те данные, которые были заданы при создании модели `item`, без учета значений по умолчанию.
+
+```python
+update_data = item.dict(exclude_unset=True)
+```
+
+**Использование параметра** `update` в Pydantic. Можно создать копию существующей модели, используя `.copy()`, и передать параметр `update` с `dict`, содержащим данные для обновления.
+
+```python
+updated_item = stored_item_model.copy(update=update_data)
+```
+
+---
+
+**Кратко о частичном обновлении**
+
+В целом, для применения частичных обновлений необходимо:
+
+- (Опционально) использовать `PATCH` вместо `PUT`.
+- Извлечь сохранённые данные.
+- Поместить эти данные в Pydantic модель.
+- Сгенерировать `dict` без значений по умолчанию из входной модели (с использованием `exclude_unset`).
+  - Таким образом, можно обновлять только те значения, которые действительно установлены пользователем, вместо того чтобы переопределять значения, уже сохраненные в модели по умолчанию.
+- Создать копию хранимой модели, обновив ее атрибуты полученными частичными обновлениями (с помощью параметра `update`).
+- Преобразовать скопированную модель в то, что может быть сохранено в вашей БД (например, с помощью `jsonable_encoder`).
+  - Это сравнимо с повторным использованием метода модели `.dict()`, но при этом происходит проверка (и преобразование) значений в типы данных, которые могут быть преобразованы в JSON, например, `datetime` в `str`.
+- Сохранить данные в своей БД
+
+# Зависимости
