@@ -134,6 +134,8 @@ async def read_items(*, item_id: int = Path(), q: str):
 
 ### Метаданные
 
+Вот [тут](https://fastapi.tiangolo.com/ru/reference/parameters/) указаны все параметры
+
 `max_length` - специфический параметр для строкового типа, ограничивающий длину
 
 `min_length` - аналогично `max_length`
@@ -350,11 +352,7 @@ async def create_upload_file(file: UploadFile):
 
 - `close()`: Закрыть файл.
 
-
-
 **Предупреждение**. В операции *функции операции пути* можно объявить несколько параметров `File` и `Form`, но нельзя также объявлять поля `Body`, которые предполагается получить в виде JSON, поскольку тело запроса будет закодировано с помощью `multipart/form-data`, а не `application/json`.
-
-
 
 **Пример файлов и формы в запросе**
 
@@ -431,8 +429,6 @@ async def read_item(item_id: str):
 async def create_item(item: Item):
     pass
 ```
-
-
 
 Описание из строк документации
 
@@ -517,3 +513,154 @@ updated_item = stored_item_model.copy(update=update_data)
 - Сохранить данные в своей БД
 
 # Зависимости
+
+## Пример зависимости от функции
+
+```python
+from typing import Annotated
+from fastapi import Depends, FastAPI
+
+app = FastAPI()
+
+
+async def common_parameters(
+    q: str | None = None, 
+    skip: int = 0, 
+    limit: int = 100
+):
+    return {"q": q, "skip": skip, "limit": limit}
+
+
+@app.get("/items/")
+async def read_items(
+    commons: Annotated[dict, Depends(common_parameters)]
+):
+    return commons
+```
+
+## Можно использовать классы как зависимости
+
+```python
+class CommonQueryParams:
+    def __init__(self, q: str | None = None, skip: int = 0, limit: int = 100):
+        self.q = q
+        self.skip = skip
+        self.limit = limit
+
+
+@app.get("/items/")
+async def read_items(
+    commons: Annotated[CommonQueryParams, Depends(CommonQueryParams)],
+    commons: Annotated[CommonQueryParams, Depends()] # То же самое
+): 
+    pass
+```
+
+## Подзависимости
+
+Если одна из ваших зависимостей объявлена ​​несколько раз для одной и той же *операции пути* , например, несколько зависимостей имеют общую подзависимость, **FastAPI** будет знать, что эту подзависимость нужно вызывать только один раз за запрос.
+
+И он сохранит возвращаемое значение в «кеше» и передаст его всем «зависимым», которым оно нужно в этом конкретном запросе, вместо того, чтобы вызывать зависимость несколько раз для одного и того же запроса.
+
+В сложном сценарии, когда вы знаете, что зависимость должна вызываться на каждом шаге (возможно, несколько раз) в одном запросе вместо использования «кэшированного» значения, вы можете задать параметр `use_cache=False`при использовании `Depends`:
+
+```python
+async def needy_dependency(
+    fresh_value: Annotated[str, Depends(get_value, use_cache=False)]
+):
+    return {"fresh_value": fresh_value}
+```
+
+## Подзависимости в декораторе пути
+
+Это если возвращаемое значение зависимости не используется внутри *функции операции пути*. Или же зависимость не возвращает никакого значения.
+
+```python
+async def verify_token(x_token: Annotated[str, Header()]):
+    if x_token != "fake-super-secret-token":
+        raise HTTPException(status_code=400, detail="X-Token header invalid")
+
+
+async def verify_key(x_key: Annotated[str, Header()]):
+    if x_key != "fake-super-secret-key":
+        raise HTTPException(status_code=400, detail="X-Key header invalid")
+    return x_key
+
+
+@app.get("/items/", dependencies=[Depends(verify_token), Depends(verify_key)])
+async def read_items():
+    return [{"item": "Foo"}, {"item": "Bar"}]
+```
+
+## Глобальные зависимости
+
+```python
+async def verify_token(x_token: Annotated[str, Header()]):
+    if x_token != "fake-super-secret-token":
+        raise HTTPException(status_code=400, detail="X-Token header invalid")
+
+
+async def verify_key(x_key: Annotated[str, Header()]):
+    if x_key != "fake-super-secret-key":
+        raise HTTPException(status_code=400, detail="X-Key header invalid")
+    return x_key
+
+
+app = FastAPI(dependencies=[Depends(verify_token), Depends(verify_key)])
+```
+
+## yield
+
+Очень удобная штука (наверное)
+
+```python
+async def get_db():
+    db = DBSession()
+    try:
+        yield db
+    finally:
+        db.close()
+```
+
+Перед созданием ответа будет выполнен только код до и включая `yield`. Код, следующий за оператором `yield`, выполняется после доставки ответа. 
+
+И естественно, что одна зависимость с `yield` может зависеть от другой.
+
+**Использование контекстных менеджеров**
+
+Сам я их редко использовал, но, всё таки это удобно. Вот пример с файлом
+
+```python
+with open("./somefile.txt") as f:
+    contents = f.read()
+    print(contents)
+```
+
+И вот как-то так это можно использовать
+
+```python
+class MySuperContextManager:
+    def __init__(self):
+        self.db = DBSession()
+
+    def __enter__(self):
+        return self.db
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.db.close()
+
+
+async def get_db():
+    with MySuperContextManager() as db:
+        yield db
+```
+
+# Авторизация
+
+Требует установки:
+
+```bash
+pip install python-multipart
+```
+
+---
