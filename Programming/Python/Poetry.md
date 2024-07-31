@@ -15,7 +15,7 @@ curl -sSL https://install.python-poetry.org | python3 -
 ```bash
 # Unix
 $HOME/.local/bin
-  
+
 # Win
 %APPDATA%\Python\Scripts
 ```
@@ -45,8 +45,6 @@ poetry-demo
 ```
 
 Файл `pyproject.py` является очень важным, он описывает зависимости и настройки проекта, которые указаны [здесь](https://python-poetry.org/docs/pyproject/).
-
-
 
 Шаблон `pyproject.py`
 
