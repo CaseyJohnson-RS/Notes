@@ -48,3 +48,25 @@ if (std::abs(val1 - val2) < delta)
 else 
     std::cout << "Неравно" << std::endl;
 ```
+
+### Считывание данных
+
+###### Считывание до конца ввода
+
+```cpp
+int x;
+while (std::cin >> x) {
+    //...
+}
+```
+
+###### Считывание построчно до конца ввода
+
+```cpp
+#include <string>
+
+std::string name;
+while (std::getline(std::cin, name)) {
+    //...
+}
+```
